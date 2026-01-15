@@ -17,9 +17,9 @@ local iconTheme = {
     size = {height = 42, width = 42},
     color = "#00FF9C",
     altColor = "#7CFFD1",
-    glitchCharChance = 10,
-    glitchTextChance = 4,
-    glitchColorChance = 6,
+    glitchCharChance = 10, -- 1 em N para trocar caracteres
+    glitchTextChance = 4, -- 1 em N para aplicar glitch no texto
+    glitchColorChance = 6, -- 1 em N para variar a cor
     glitchInterval = 500
 }
 iconTheme.index = 0
@@ -49,7 +49,7 @@ end
 local function registerBotIcon(name, iconData, macroRef, label, options)
     if botIconRegistry[name] then botIconRegistry[name]:destroy() end
     local useGrid = not (options and options.skipGrid)
-    local gridIndex = iconTheme.index
+    local gridIndex
     if useGrid then
         iconTheme.index = iconTheme.index + 1
         gridIndex = iconTheme.index
@@ -77,7 +77,7 @@ local function registerBotIcon(name, iconData, macroRef, label, options)
     return icon
 end
 
-macro(iconTheme.glitchInterval, function()
+local iconGlitchMacro = macro(iconTheme.glitchInterval, function()
     for key, icon in pairs(glitchableIcons) do
         if not icon then
             glitchableIcons[key] = nil
@@ -181,7 +181,7 @@ local bossMacro = macro(1000, "Boss Timer", function()
     end
 end)
 if bossIcon then bossIcon:destroy() end
-bossIcon = registerBotIcon("BossTimerFix", {item=2036, text="", moveable=true}, bossMacro, nil, {
+bossIcon = registerBotIcon("BossTimerFix", {item=2036, text="", moveable=true}, bossMacro, "", {
     skipGrid = true,
     position = {x = 35, y = 50},
     size = {height = 85, width = 50},
