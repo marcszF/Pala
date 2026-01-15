@@ -59,7 +59,7 @@ end
 
 function buildIdSet(list)
     local set = {}
-    if type(list) ~= "table" then return set end
+    if not list or type(list) ~= "table" then return set end
     for _, id in ipairs(list) do
         local resolved = resolveItemId(id)
         if resolved then
@@ -133,10 +133,7 @@ function isEnemy(name)
     if not p or p:isLocalPlayer() then return false end
 
     local isMarkedEnemy = storage.playerList.marks and not isFriend(name)
-    if (p:isPlayer() and table.find(storage.playerList.enemyList, name)) or isMarkedEnemy then
-        return true
-    end
-    return false
+    return (p:isPlayer() and table.find(storage.playerList.enemyList, name)) or isMarkedEnemy
 end
   
 function isAttSpell(expr)
@@ -278,7 +275,7 @@ function itemAmount(id)
             totalItemCount = item:getId() == id and totalItemCount + item:getCount() or totalItemCount 
         end
     end
-    -- Sum all equipped slots that match the requested item id.
+    -- Sum all equipped slots that match the requested item ID.
     for _, getter in ipairs(EquipmentGetters) do
         local item = getter()
         if item and item:getId() == id then
