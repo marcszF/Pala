@@ -14,6 +14,8 @@ end
 
 function isBuffed()
     if not hasPartyBuff() then return false end
+    local player = g_game.getLocalPlayer()
+    if not player then return false end
     for i=1,4 do
         local premium = (player:getSkillLevel(i) - player:getSkillBaseLevel(i))
         local base = player:getSkillBaseLevel(i)
@@ -276,6 +278,7 @@ function itemAmount(id)
             totalItemCount = item:getId() == id and totalItemCount + item:getCount() or totalItemCount 
         end
     end
+    -- Sum all equipped slots that match the requested item id.
     for _, getter in ipairs(EquipmentGetters) do
         local item = getter()
         if item and item:getId() == id then
