@@ -115,22 +115,37 @@ if rootWidget then
     end
 
     local configName = modules.game_bot.contentsPanel.config:getCurrentOption().text;
+    local function alarmSound(fileName)
+        return "/bot/" .. configName .. "/Alarme/" .. fileName .. ".ogg"
+    end
+    local function inRange(posX, posY, specPos, range)
+        return math.max(math.abs(posX - specPos.x), math.abs(posY - specPos.y)) <= range
+    end
 
     onTextMessage(function(mode, text)
-        if storage[alarmsPanelName].enabled and storage[alarmsPanelName].playerAttack and mode == 16 and string.match(text, "hitpoints due to an attack") and not string.match(text, "hitpoints due to an attack by a ") then
-            playSound("/bot/" .. configName.. "/Alarme/Player_Attack.ogg")
+        local isEnabled = storage[alarmsPanelName].enabled and storage[alarmsPanelName].playerAttack
+        if isEnabled and mode == 16 then
+            local isAttackBy = text:find("hitpoints due to an attack by a ", 1, true)
+            local isHitMessage = not isAttackBy and text:find("hitpoints due to an attack", 1, true)
+            if isHitMessage then
+                playSound(alarmSound("Player_Attack"))
+            end
         end
     end)
 
     macro(100, function()
         if not storage[alarmsPanelName].enabled then return end
         
+        local specs
+        local posX, posY
         if storage[alarmsPanelName].playerDetected then
-            for _, spec in ipairs(getSpectators()) do
+            if not posX then posX, posY = posx(), posy() end
+            if not specs then specs = getSpectators() end
+            for _, spec in ipairs(specs) do
                 if spec:isPlayer() and spec:getName() ~= name() then
-                    specPos = spec:getPosition()
-                    if math.max(math.abs(posx()-specPos.x), math.abs(posy()-specPos.y)) <= 8 then
-                        playSound("/bot/" .. configName.. "/Alarme/jogador.ogg")
+                    local specPos = spec:getPosition()
+                    if specPos and inRange(posX, posY, specPos, 8) then
+                        playSound(alarmSound("jogador"))
                         delay(1500)
                         if storage[alarmsPanelName].playerDetectedLogout then
                             modules.game_interface.tryLogout(false)
@@ -142,11 +157,13 @@ if rootWidget then
         end
 
         if storage[alarmsPanelName].creatureDetected then
-            for _, spec in ipairs(getSpectators()) do
+            if not posX then posX, posY = posx(), posy() end
+            if not specs then specs = getSpectators() end
+            for _, spec in ipairs(specs) do
                 if not spec:isPlayer()then
-                    specPos = spec:getPosition()
-                    if math.max(math.abs(posx()-specPos.x), math.abs(posy()-specPos.y)) <= 8 then
-                        playSound("/bot/" .. configName.. "/Alarme/monstro.ogg")
+                    local specPos = spec:getPosition()
+                    if specPos and inRange(posX, posY, specPos, 8) then
+                        playSound(alarmSound("monstro"))
                         delay(1500)
                         return
                     end
@@ -156,16 +173,17 @@ if rootWidget then
 
         if storage[alarmsPanelName].healthBelow then
             if hppercent() <= storage[alarmsPanelName].healthValue then
-                playSound("/bot/" .. configName.. "/Alarme/vida.ogg")
+                playSound(alarmSound("vida"))
                 delay(1500)
                 return
             end
         end
 
         if storage[alarmsPanelName].playerpk then
-            for _, spec in ipairs(getSpectators()) do
+            if not specs then specs = getSpectators() end
+            for _, spec in ipairs(specs) do
                 if spec:isPlayer() and spec:getSkull() ~= skull() then
-                    playSound("/bot/" .. configName.. "/Alarme/pk.ogg")
+                    playSound(alarmSound("pk"))
                     delay(1500)
                     return
                 end
@@ -174,7 +192,7 @@ if rootWidget then
 
         if storage[alarmsPanelName].manaBelow then
             if manapercent() <= storage[alarmsPanelName].manaValue then
-                playSound("/bot/" .. configName.. "/Alarme/mana.ogg")
+                playSound(alarmSound("mana"))
                 delay(1500)
                 return
             end
