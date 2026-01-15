@@ -7,18 +7,26 @@ setDefaultTab("Tools")
 -- script
 
 local lockedLevel = pos().z
+local mapPanel = modules.game_interface.getMapPanel()
+local function ensureMapPanel()
+    if not mapPanel then mapPanel = modules.game_interface.getMapPanel() end
+    return mapPanel
+end
 
 onPlayerPositionChange(function(newPos, oldPos)
-    lockedLevel = pos().z
-    modules.game_interface.getMapPanel():unlockVisibleFloor()
+    lockedLevel = newPos.z
+    local panel = ensureMapPanel()
+    if panel then panel:unlockVisibleFloor() end
 end)
 
 onKeyPress(function(keys)
     if keys == keyDown then
         lockedLevel = lockedLevel + 1
-        modules.game_interface.getMapPanel():lockVisibleFloor(lockedLevel)
+        local panel = ensureMapPanel()
+        if panel then panel:lockVisibleFloor(lockedLevel) end
     elseif keys == keyUp then
         lockedLevel = lockedLevel - 1
-        modules.game_interface.getMapPanel():lockVisibleFloor(lockedLevel)
+        local panel = ensureMapPanel()
+        if panel then panel:lockVisibleFloor(lockedLevel) end
     end
 end)

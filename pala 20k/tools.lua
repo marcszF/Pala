@@ -16,8 +16,8 @@ end)
 UI.Separator()
 
 macro(1000, "Abrir Bag Principal", function()
-    bpItem = getBack()
-    bp = getContainer(0)
+    local bpItem = getBack()
+    local bp = getContainer(0)
 
     if not bp and bpItem ~= nil then
         g_game.open(bpItem)
@@ -38,7 +38,9 @@ if name == player:getName() then return end
     if mode ~= 1 then  return end
     if string.find(text, "pt")  and pt == true then
         local friend = getPlayerByName(name)
-        g_game.partyInvite(friend:getId())
+        if friend then
+          g_game.partyInvite(friend:getId())
+        end
     end
 end)
 

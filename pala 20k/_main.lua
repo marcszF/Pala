@@ -24,16 +24,15 @@ if type(storage.moneyItems) ~= "table" or not storage.moneyItems[1] then
 end
 
 macro(500, "Converter dinheiro", function()
-  if not storage.moneyItems then return end
+  local moneyItems = storage.moneyItems
+  if not moneyItems then return end
+  local moneyIds = buildIdSet(moneyItems)
   local containers = g_game.getContainers()
   for index, container in pairs(containers) do
     if not container.lootContainer then 
       for i, item in ipairs(container:getItems()) do
-        if item:getCount() == 100 then
-          for m, moneyEntry in ipairs(storage.moneyItems) do
-            local idCheck = type(moneyEntry) == 'table' and moneyEntry.id or moneyEntry
-            if item:getId() == idCheck then return g_game.use(item) end
-          end
+        if item:getCount() == 100 and moneyIds[item:getId()] then
+          return g_game.use(item)
         end
       end
     end
@@ -221,7 +220,7 @@ local autoAttackItemMacro = macro(200, "Auto attack item", function()
     if not target then return end
     local itemEntry = storage.attackItemObj[1]
     if not itemEntry then return end
-    local itemId = type(itemEntry) == "table" and itemEntry.id or itemEntry
+    local itemId = resolveItemId(itemEntry)
     if g_game.useInventoryItemWith then g_game.useInventoryItemWith(itemId, target)
     else local item = findItem(itemId) if item then g_game.useWith(item, target) end end
 end)
@@ -231,7 +230,7 @@ attackItemContainer:setHeight(35)
 attackItemContainer:setItems(storage.attackItemObj)
 local attackItemIconId = 3155
 local attackItemEntry = storage.attackItemObj[1]
-if attackItemEntry then attackItemIconId = type(attackItemEntry) == "table" and attackItemEntry.id or attackItemEntry end
+if attackItemEntry then attackItemIconId = resolveItemId(attackItemEntry) end
 if autoAttackItemIcon then autoAttackItemIcon:destroy() end
 autoAttackItemIcon = addIcon("AutoAttackItem", {item=attackItemIconId, text="Atk Item", moveable=true}, autoAttackItemMacro)
 
@@ -348,6 +347,8 @@ UI.Separator()
 local config = { distance = 1, interactionDelay = 100 }
 local useIds = {433,435,482,1948,1968,5542,7771,9116,12799,17230,20469,20474,20488,20489,20895,20896,28209,28210,28656,31129,31130,31262,33770,34324,43374}
 local stepIds = {166,167,413,427,427,428,433,437,438,465,468,566,855,856,857,1947,1950,1951,1952,1953,1954,1955,1956,1957,1958,1977,1978,4823,5081,5257,5258,5259,7881,7888,8657,8658,8690,8932,10206,11707,11709,14133,15144,15145,15146,15147,15718,16272,17394,17395,15590,15591,20123,20124,20142,20224,20225,20253,20254,20255,20256,20257,20258,20259,20328,20329,20330,20331,20332,20333,20334,20335,20336,20491,20492,20493,20494,20495,20496,20750,20751,20752,20753,20754,20755,21365,21564,21566,21568,21570,21156,22517,22565,22566,22749,29111,31907,39919,39921,39923,39925,40262,40263,40279,40281,40296,40298,40302,40428,40430,40432,40434,42619,42621,42623,42632,43134,42395,42391,23483,1967,1966,293,294,369,370,385,394,411,412,414,426,432,434,469,476,483,484,485,594,595,600,601,602,607,609,610,615,868,874,877,1066,1067,1080,1156,4824,4825,4826,5544,5691,5731,5763,6127,6128,6129,6130,6172,6173,6754,6755,6756,6916,7053,7181,7182,7476,7477,7478,7479,7515,7516,7517,7518,7520,7521,7522,7729,7730,7731,7732,7733,7734,7735,7736,7737,7755,7764,8144,8709,8924,12200,12236,12797,12798,12939,12940,12941,12942,12943,12944,12945,12946,12947,12948,12949,12950,12951,12952,12953,12954,12955,12956,12957,12958,12959,12960,14134,16265,16266,16267,16268,16269,16270,16271,16696,16697,16698,16699,16700,16701,16702,16703,16785,16786,16787,16788,16789,16790,16791,16792,17239,18642,18643,18644,18645,18646,18647,18648,18649,19143,19220,20260,20261,20262,20263,20344,20470,20471,20472,20073,21034,21342,21344,21971,21972,21973,22157,22748,23364,27628,28655,30452,30453,31168,32020,33709,34166,34255,38831,38832,43372,6920,505,628,775,878,1756,1761,1949,1959,5022,5756,8193,11552,11553,12795,15320,19243,20142,21739,21740,21741,21743,22106,22747,22761,23482,25047,25049,25051,25052,25053,25054,25055,25056,25057,25058,27589,27590,27658,28671,29975,29979,29980,32974,33004,33005,33006,33007,33790,34111,35502,36972,37000,37001,31469,37065,5068,5069,44027,32979,23483}
+local useIdSet = buildIdSet(useIds)
+local stepIdSet = buildIdSet(stepIds)
 
 local lastKnownX, lastKnownY, lastKnownZ = 0, 0, 0
 local hasLastPos, lastInteraction = false, 0
@@ -355,10 +356,6 @@ if not storage.TurboFollowName then storage.TurboFollowName = "" end
 UI.Label("Nome do Alvo:")
 local followEdit = UI.TextEdit(storage.TurboFollowName or "", function(widget, text) storage.TurboFollowName = text end)
 
-local function isIdInList(id, list)
-    for i = 1, #list do if list[i] == id then return true end end
-    return false
-end
 local function findTarget(name)
     if not name or #name < 1 then return nil end
     local player = g_game.getLocalPlayer()
@@ -383,12 +380,12 @@ local function checkSurroundings(pPos)
                 for _, thing in ipairs(things) do
                     if thing:isItem() then
                         local id = thing:getId()
-                        if isIdInList(id, stepIds) then
+                        if stepIdSet[id] then
                             autoWalk(checkPos, 10, {ignoreNonPathable=true, precision=0})
                             lastInteraction = now
                             return
                         end
-                        if isIdInList(id, useIds) then
+                        if useIdSet[id] then
                             g_game.use(thing)
                             lastInteraction = now
                             return

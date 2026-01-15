@@ -13,15 +13,15 @@ function containerIsFull(c)
 end
 
 function isBuffed()
-    local var = false
+    if not hasPartyBuff() then return false end
     for i=1,4 do
         local premium = (player:getSkillLevel(i) - player:getSkillBaseLevel(i))
         local base = player:getSkillBaseLevel(i)
-        if hasPartyBuff() and (premium/100)*305 > base then
-            var = true
+        if (premium/100)*305 > base then
+            return true
         end
     end
-    return var
+    return false
 end
 
 function reindexTable(t)
@@ -35,15 +35,42 @@ function reindexTable(t)
 end
 
 function killsToRs()
-    return math.min(g_game.getUnjustifiedPoints().killsDayRemaining, g_game.getUnjustifiedPoints().killsWeekRemaining, g_game.getUnjustifiedPoints().killsMonthRemaining)
+    local points = g_game.getUnjustifiedPoints()
+    return math.min(points.killsDayRemaining, points.killsWeekRemaining, points.killsMonthRemaining)
 end
 
 local Spells = modules.gamelib.SpellInfo['Default']
+local SpellIndex = {}
+for _, spell in pairs(Spells) do
+    if spell.words then
+        SpellIndex[spell.words] = spell
+    end
+end
+
+function resolveItemId(entry)
+    if type(entry) == "table" then
+        return entry.id
+    end
+    return entry
+end
+
+function buildIdSet(list)
+    local set = {}
+    if type(list) ~= "table" then return set end
+    for _, id in ipairs(list) do
+        local resolved = resolveItemId(id)
+        if resolved then
+            set[resolved] = true
+        end
+    end
+    return set
+end
 
 function canCast(spell, ignoreMana)
     if type(spell) ~= "string" then return end
-    if not getSpellData(spell) then return true end
-    if not getSpellCoolDown(spell) and level() >= getSpellData(spell).level and (ignoreMana or mana() >= getSpellData(spell).mana) then
+    local spellData = getSpellData(spell)
+    if not spellData then return true end
+    if not getSpellCoolDown(spell) and level() >= spellData.level and (ignoreMana or mana() >= spellData.mana) then
         return true
     else
         return false
@@ -52,28 +79,14 @@ end
 
 function getSpellData(spell)
     if not spell then return false end
-    local t = nil
-    for k,v in pairs(Spells) do
-        if v.words == spell then
-            t = k
-            break
-        end
-    end
-    if t then
-        return Spells[t]
-    else
-        return false
-    end
+    return SpellIndex[spell] or false
 end
 
 function getSpellCoolDown(text)
     if not text then return false end
-    if not getSpellData(text) then return false end
-    for i,v in pairs(Spells) do
-        if v.words == text then
-            return modules.game_cooldown.isCooldownIconActive(v.id)
-        end
-    end
+    local spellData = getSpellData(text)
+    if not spellData then return false end
+    return modules.game_cooldown.isCooldownIconActive(spellData.id)
 end
 
 storage.isUsing = false
@@ -114,6 +127,7 @@ end
 function isEnemy(name)
     if not name then return false end
     local p = getCreatureByName(name, true)
+    if not p then return false end
     if p:isLocalPlayer() then return end
 
     if p:isPlayer() and table.find(storage.playerList.enemyList, name) or (storage.playerList.marks and not isFriend(name)) then
@@ -131,42 +145,33 @@ function isAttSpell(expr)
   end
 end
 
+local ActiveItemMap = {
+    [3049] = 3086,
+    [3050] = 3087,
+    [3051] = 3088,
+    [3052] = 3089,
+    [3053] = 3090,
+    [3091] = 3094,
+    [3092] = 3095,
+    [3093] = 3096,
+    [3097] = 3099,
+    [3098] = 3100,
+    [16114] = 16264,
+    [23531] = 23532,
+    [23533] = 23534,
+    [23529] = 23530
+}
+local InactiveItemMap = {}
+for inactiveId, activeId in pairs(ActiveItemMap) do
+    InactiveItemMap[activeId] = inactiveId
+end
+
 function getActiveItemId(id)
     if not id then
         return false
     end
 
-    if id == 3049 then
-        return 3086
-    elseif id == 3050 then
-        return 3087
-    elseif id == 3051 then
-        return 3088
-    elseif id == 3052 then
-        return 3089
-    elseif id == 3053 then
-        return 3090
-    elseif id == 3091 then
-        return 3094
-    elseif id == 3092 then
-        return 3095
-    elseif id == 3093 then
-        return 3096
-    elseif id == 3097 then
-        return 3099
-    elseif id == 3098 then
-        return 3100
-    elseif id == 16114 then
-        return 16264
-    elseif id == 23531 then
-        return 23532
-    elseif id == 23533 then
-        return 23534
-    elseif id == 23529 then
-        return  23530
-    else
-        return id
-    end
+    return ActiveItemMap[id] or id
 end
 
 function getInactiveItemId(id)
@@ -174,37 +179,7 @@ function getInactiveItemId(id)
         return false
     end
 
-    if id == 3086 then
-        return 3049
-    elseif id == 3087 then
-        return 3050
-    elseif id == 3088 then
-        return 3051
-    elseif id == 3089 then
-        return 3052
-    elseif id == 3090 then
-        return 3053
-    elseif id == 3094 then
-        return 3091
-    elseif id == 3095 then
-        return 3092
-    elseif id == 3096 then
-        return 3093
-    elseif id == 3099 then
-        return 3097
-    elseif id == 3100 then
-        return 3098
-    elseif id == 16264 then
-        return 16114
-    elseif id == 23532 then
-        return 23531
-    elseif id == 23534 then
-        return 23533
-    elseif id == 23530 then
-        return  23529
-    else
-        return id
-    end
+    return InactiveItemMap[id] or id
 end
 
 function getMonstersInRange(pos, range)
@@ -228,9 +203,7 @@ function distanceFromPlayer(coords)
 end
 
 function getMonsters(range, multifloor)
-    if not range then
-        range = 10
-    end
+    range = range or 10
     local mobs = 0;
     for _, spec in pairs(getSpectators(multifloor)) do
       mobs = spec:getType() ~= 3 and spec:isMonster() and distanceFromPlayer(spec:getPosition()) <= range and mobs + 1 or mobs;
@@ -239,9 +212,7 @@ function getMonsters(range, multifloor)
 end
 
 function getPlayers(range, multifloor)
-    if not range then
-        range = 10
-    end
+    range = range or 10
     local specs = 0;
     for _, spec in pairs(getSpectators(multifloor)) do
         specs = not spec:isLocalPlayer() and spec:isPlayer() and distanceFromPlayer(spec:getPosition()) <= range and not ((spec:getShield() >= 3 and spec:getShield() <= 10) or spec:getEmblem() == 1) and specs + 1 or specs;
@@ -259,10 +230,12 @@ function isSafe(range, multifloor, padding)
 
     for _, spec in pairs(getSpectators(multifloor)) do
         if spec:isPlayer() and not spec:isLocalPlayer() and not isFriend(spec:getName()) then
-            if spec:getPosition().z == posz() and distanceFromPlayer(spec:getPosition()) <= range then
+            local specPos = spec:getPosition()
+            local dist = distanceFromPlayer(specPos)
+            if specPos.z == posz() and dist <= range then
                 onSame = onSame + 1
             end
-            if multifloor and padding and spec:getPosition().z ~= posz() and distanceFromPlayer(spec:getPosition()) <= (range + padding) then
+            if multifloor and padding and specPos.z ~= posz() and dist <= (range + padding) then
                 onAnother = onAnother + 1
             end
         end
@@ -276,9 +249,7 @@ function isSafe(range, multifloor, padding)
 end
 
 function getAllPlayers(range, multifloor)
-    if not range then
-        range = 10
-    end
+    range = range or 10
     local specs = 0;
     for _, spec in pairs(g_map.getSpectators(multifloor)) do
         specs = not spec:isLocalPlayer() and spec:isPlayer() and distanceFromPlayer(spec:getPosition()) <= range and specs + 1 or specs;
@@ -287,15 +258,15 @@ function getAllPlayers(range, multifloor)
 end
 
 function getNpcs(range, multifloor)
-    if not range then
-        range = 10
-    end
+    range = range or 10
     local npcs = 0;
     for _, spec in pairs(g_map.getSpectators(multifloor)) do
         npcs = spec:isNpc() and distanceFromPlayer(spec:getPosition()) <= range and npcs + 1 or npcs;
     end
     return npcs;
 end
+
+local EquipmentGetters = {getHead, getNeck, getBack, getBody, getRight, getLeft, getLeg, getFeet, getFinger, getAmmo}
 
 function itemAmount(id)
     local totalItemCount = 0
@@ -304,35 +275,11 @@ function itemAmount(id)
             totalItemCount = item:getId() == id and totalItemCount + item:getCount() or totalItemCount 
         end
     end
-    if getHead() and getHead():getId() == id then
-        totalItemCount = totalItemCount + getHead():getCount()
-    end
-    if getNeck() and getNeck():getId() == id then
-        totalItemCount = totalItemCount + getNeck():getCount()
-    end
-    if getBack() and getBack():getId() == id then
-        totalItemCount = totalItemCount + getBack():getCount()
-    end
-    if getBody() and getBody():getId() == id then
-        totalItemCount = totalItemCount + getBody():getCount()
-    end
-    if getRight() and getRight():getId() == id then
-        totalItemCount = totalItemCount + getRight():getCount()
-    end
-    if getLeft() and getLeft():getId() == id then
-        totalItemCount = totalItemCount + getLeft():getCount()
-    end
-    if getLeg() and getLeg():getId() == id then
-        totalItemCount = totalItemCount + getLeg():getCount()
-    end
-    if getFeet() and getFeet():getId() == id then
-        totalItemCount = totalItemCount + getFeet():getCount()
-    end
-    if getFinger() and getFinger():getId() == id then
-        totalItemCount = totalItemCount + getFinger():getCount()
-    end
-    if getAmmo() and getAmmo():getId() == id then
-        totalItemCount = totalItemCount + getAmmo():getCount()
+    for _, getter in ipairs(EquipmentGetters) do
+        local item = getter()
+        if item and item:getId() == id then
+            totalItemCount = totalItemCount + item:getCount()
+        end
     end
     return totalItemCount
 end
@@ -463,9 +410,10 @@ function getBestTileByPatern(pattern, specType, maxDist, safe)
             local minimapColor = g_map.getMinimapColor(tile:getPosition())
             local stairs = (minimapColor >= 210 and minimapColor <= 213)
             if tile:canShoot() and tile:isWalkable() and not stairs then
-                if getCreaturesInArea(tile:getPosition(), pattern, specType) > 0 then
+                local creatureCount = getCreaturesInArea(tile:getPosition(), pattern, specType)
+                if creatureCount > 0 then
                     if (not safe or getCreaturesInArea(tile:getPosition(), pattern, 3) == 0) then 
-                        local candidate = {pos = tile, count = getCreaturesInArea(tile:getPosition(), pattern, specType)}
+                        local candidate = {pos = tile, count = creatureCount}
                         if not best or best.count <= candidate.count then
                             best = candidate
                         end

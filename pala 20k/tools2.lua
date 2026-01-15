@@ -23,13 +23,14 @@ for _, scripts in pairs({storage.ingame_hotkeys2}) do
 end
 
 
- UI.Separator() followName = "autofollow"
+UI.Separator()
+local followName = "autofollow"
 if not storage[followName] then storage[followName] = { player = 'name'} end
 local toFollowPos = {}
 
 addSeparator()
 
-followTE = UI.TextEdit(storage[followName].player or "name", function(widget, newText)
+local followTE = UI.TextEdit(storage[followName].player or "name", function(widget, newText)
     storage[followName].player = newText
 end)
 
@@ -46,6 +47,8 @@ local followw= storage[followName].player
 end) 
 
 local followMacro = macro(20, "Follow Attack", function()
+    local player = g_game.getLocalPlayer()
+    if not player then return end
     local target = getCreatureByName(storage[followName].player)
     if target then
         local tpos = target:getPosition()
@@ -66,7 +69,7 @@ UI.Separator()
 onPlayerPositionChange(function(newPos, oldPos)
   if followChange:isOff() then return end
   if (g_game.isFollowing()) then
-    tfollow = g_game.getFollowingCreature()
+    local tfollow = g_game.getFollowingCreature()
 
     if tfollow then
       if tfollow:getName() ~= storage[followName].player then
@@ -96,7 +99,8 @@ macro(1, function() if g_game.isAttacking() and g_game.getAttackingCreature():is
 
 UI.Separator()
  
-addSeparator() local dropItems = { 3031, 3035 }
+addSeparator()
+local dropItems = { 3031, 3035 }
 local maxStackedItems = 10
 local dropDelay = 600
 

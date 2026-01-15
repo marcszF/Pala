@@ -1,4 +1,5 @@
 local loadPanelName = "Odeio baiano"
+local random = math.random
 
 local ui = setupUI([[
 Panel
@@ -15,6 +16,7 @@ Panel
     text-align: center
     !text: tr('                 Odeio baiano')
 ]], parent)
+local label = ui and ui.Odeiobaiano
 
 UI.Separator()
 
@@ -60,8 +62,8 @@ local function glitchText(text)
   local chars = {}
   for i = 1, #text do
     local c = text:sub(i,i)
-    if math.random(1,12) == 1 then
-      chars[i] = glitchChars[math.random(#glitchChars)]
+    if random(1,12) == 1 then
+      chars[i] = glitchChars[random(#glitchChars)]
     else
       chars[i] = c
     end
@@ -74,7 +76,7 @@ end
 -- =====================================
 
 macro(50, function()
-  if not ui or not ui.Odeiobaiano then return end
+  if not label then return end
 
   -- Rainbow color
   rainbowHue = rainbowHue + 0.015
@@ -82,18 +84,18 @@ macro(50, function()
 
   local r, g, b = hslToRgb(rainbowHue, 1, 0.5)
   local hex = string.format("#%02X%02X%02X", r, g, b)
-  ui.Odeiobaiano:setColor(hex)
+  label:setColor(hex)
 
   -- Glitch text
-  if math.random(1,3) == 1 then
-    ui.Odeiobaiano:setText(glitchText(baseText))
+  if random(1,3) == 1 then
+    label:setText(glitchText(baseText))
   else
-    ui.Odeiobaiano:setText(baseText)
+    label:setText(baseText)
   end
 
   -- Tremor (shake)
-  local x = math.random(-1,1)
-  local y = math.random(-1,1)
-  ui.Odeiobaiano:setMarginLeft(0 + x)
-  ui.Odeiobaiano:setMarginTop(10 + y)
+  local x = random(-1,1)
+  local y = random(-1,1)
+  label:setMarginLeft(x)
+  label:setMarginTop(10 + y)
 end)
