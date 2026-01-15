@@ -17,8 +17,8 @@ function isBuffed()
     local player = g_game.getLocalPlayer()
     if not player then return false end
     for i=1,4 do
-        local premium = (player:getSkillLevel(i) - player:getSkillBaseLevel(i))
         local base = player:getSkillBaseLevel(i)
+        local premium = player:getSkillLevel(i) - base
         if (premium/100)*305 > base then
             return true
         end
@@ -231,12 +231,14 @@ function isSafe(range, multifloor, padding)
     for _, spec in pairs(getSpectators(multifloor)) do
         if spec:isPlayer() and not spec:isLocalPlayer() and not isFriend(spec:getName()) then
             local specPos = spec:getPosition()
-            local dist = distanceFromPlayer(specPos)
-            if specPos.z == playerZ and dist <= range then
-                onSame = onSame + 1
-            end
-            if multifloor and padding and specPos.z ~= playerZ and dist <= (range + padding) then
-                onAnother = onAnother + 1
+            if specPos.z == playerZ then
+                if distanceFromPlayer(specPos) <= range then
+                    onSame = onSame + 1
+                end
+            elseif multifloor and padding then
+                if distanceFromPlayer(specPos) <= (range + padding) then
+                    onAnother = onAnother + 1
+                end
             end
         end
     end
