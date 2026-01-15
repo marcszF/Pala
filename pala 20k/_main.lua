@@ -55,6 +55,7 @@ local function registerBotIcon(name, iconData, macroRef, label, options)
         gridIndex = iconTheme.index
     end
     if iconData and iconData.moveable == nil then iconData.moveable = true end
+    if iconData and label ~= nil and iconData.text == nil then iconData.text = label end
     local icon = addIcon(name, iconData, macroRef)
     local size = options and options.size or iconTheme.size
     if size then icon:setSize(size) end
@@ -78,9 +79,10 @@ local function registerBotIcon(name, iconData, macroRef, label, options)
 end
 
 local iconGlitchMacro = macro(iconTheme.glitchInterval, function()
+    local cleanupKeys = {}
     for key, icon in pairs(glitchableIcons) do
         if not icon then
-            glitchableIcons[key] = nil
+            table.insert(cleanupKeys, key)
         else
             local label = icon.glitchLabel or ""
             if label ~= "" then
@@ -97,6 +99,9 @@ local iconGlitchMacro = macro(iconTheme.glitchInterval, function()
             end
         end
     end
+    for _, key in ipairs(cleanupKeys) do
+        glitchableIcons[key] = nil
+    end
 end)
 
 local autoReconnectMacro = macro(3000, "Auto Reconnect", function()
@@ -109,7 +114,7 @@ local autoReconnectMacro = macro(3000, "Auto Reconnect", function()
     if EnterGame and EnterGame.doLogin then EnterGame.doLogin()
     else if EnterGame then EnterGame.show() end end
 end)
-autoReconnectIcon = registerBotIcon("AutoReconnect", {item=3031, text="RC"}, autoReconnectMacro, "RC")
+autoReconnectIcon = registerBotIcon("AutoReconnect", {item=3031}, autoReconnectMacro, "RC")
 
 UI.Separator()
 
@@ -136,7 +141,7 @@ local moneyMacro = macro(500, "Converter dinheiro", function()
     end
   end
 end)
-moneyIcon = registerBotIcon("MoneyConvert", {item=3035, text="COIN"}, moneyMacro, "COIN")
+moneyIcon = registerBotIcon("MoneyConvert", {item=3035}, moneyMacro, "COIN")
 local moneyContainer = UI.Container(function(widget, items) storage.moneyItems = items end, true)
 moneyContainer:setHeight(35)
 moneyContainer:setItems(storage.moneyItems)
@@ -181,7 +186,7 @@ local bossMacro = macro(1000, "Boss Timer", function()
     end
 end)
 if bossIcon then bossIcon:destroy() end
-bossIcon = registerBotIcon("BossTimerFix", {item=2036, text="", moveable=true}, bossMacro, "", {
+bossIcon = registerBotIcon("BossTimerFix", {item=2036, moveable=true}, bossMacro, "", {
     skipGrid = true,
     position = {x = 35, y = 50},
     size = {height = 85, width = 50},
@@ -208,7 +213,7 @@ local staminaMacro = macro(1000, "Auto Stamina Potion", function()
         if use then use(staminaConfig.potionId) else g_game.useInventoryItem(staminaConfig.potionId) end
     end
 end)
-staminaIcon = registerBotIcon("StaminaPotion", {item=staminaConfig.potionId, text="STM"}, staminaMacro, "STM")
+staminaIcon = registerBotIcon("StaminaPotion", {item=staminaConfig.potionId}, staminaMacro, "STM")
 
 UI.Separator()
 
@@ -216,7 +221,7 @@ UI.Separator()
 -- 5. MONSTRO HP % & FOLLOW
 -- =====================================
 local showhp = macro(20000, "Monstro Hp %", function() end)
-hpIcon = registerBotIcon("MonsterHp", {item=3031, text="HP"}, showhp, "HP")
+hpIcon = registerBotIcon("MonsterHp", {item=3031}, showhp, "HP")
 onCreatureHealthPercentChange(function(creature, healthPercent)
     if showhp:isOff() then return end
     if creature:isMonster() or (creature:isPlayer() and creature:getPosition()) then
@@ -229,7 +234,7 @@ UI.Separator()
 local chaseMacro = macro(250, "Atacar Seguindo", "Shift+R", function()
    if g_game.isOnline() and g_game.isAttacking() then g_game.setChaseMode(1) end
 end)
-chaseIcon = registerBotIcon("ChaseAttack", {item=3031, text="CHS"}, chaseMacro, "CHS")
+chaseIcon = registerBotIcon("ChaseAttack", {item=3031}, chaseMacro, "CHS")
 
 UI.Separator()
 
@@ -245,7 +250,7 @@ local sellBankMacro = macro(30000, "Auto Sell+Bank (Store)", function()
     useItemById(seqConfig.sellId)
     schedule(seqConfig.delay, function() useItemById(seqConfig.bankId) end)
 end)
-sellBankIcon = registerBotIcon("SellBank", {item=seqConfig.sellId, text="SLB"}, sellBankMacro, "SLB")
+sellBankIcon = registerBotIcon("SellBank", {item=seqConfig.sellId}, sellBankMacro, "SLB")
 
 UI.Separator()
 
@@ -284,7 +289,7 @@ local HouseMacro = macro(trainerConfig.delay, "House Trainer", function()
     if wandItem then g_game.useWith(wandItem, targetDummy) end
 end)
 if trainerIcon then trainerIcon:destroy() end
-trainerIcon = registerBotIcon("TrainerFix", {item=55486, text="TRN", moveable=true}, HouseMacro, "TRN", {
+trainerIcon = registerBotIcon("TrainerFix", {item=55486, moveable=true}, HouseMacro, "TRN", {
     skipGrid = true,
     position = {x = 35, y = 130}
 })
@@ -301,7 +306,7 @@ local attackMacro = macro(100, "Attack", function()
       if storage.magia3 and storage.magia3 ~= "" then delay(100) say(storage.magia3) end
     end
 end)
-attackIcon = registerBotIcon("AttackSpells", {item=3155, text="ATK"}, attackMacro, "ATK")
+attackIcon = registerBotIcon("AttackSpells", {item=3155}, attackMacro, "ATK")
 UI.TextEdit(storage.magia1 or "spell", function(widget, newText) storage.magia1 = newText end)
 UI.TextEdit(storage.magia2 or "spell2", function(widget, newText) storage.magia2 = newText end)
 UI.TextEdit(storage.magia3 or "spell3", function(widget, newText) storage.magia3 = newText end)
@@ -319,7 +324,7 @@ local autoAttackItemMacro = macro(200, "Auto attack item", function()
     if g_game.useInventoryItemWith then g_game.useInventoryItemWith(itemId, target)
     else local item = findItem(itemId) if item then g_game.useWith(item, target) end end
 end)
-autoAttackItemIcon = registerBotIcon("AttackItem", {item=3155, text="ITM"}, autoAttackItemMacro, "ITM")
+autoAttackItemIcon = registerBotIcon("AttackItem", {item=3155}, autoAttackItemMacro, "ITM")
 UI.Label("Arraste o item de ataque aqui:")
 local attackItemContainer = UI.Container(function(widget, items) storage.attackItemObj = items end, true)
 attackItemContainer:setHeight(35)
@@ -368,7 +373,7 @@ local bossDodgeMacro = macro(100, "Boss Dodge Logic", function()
         end
     end
 end)
-bossDodgeIcon = registerBotIcon("BossDodge", {item=dodgeConfig.forbiddenId, text="DGE"}, bossDodgeMacro, "DGE")
+bossDodgeIcon = registerBotIcon("BossDodge", {item=dodgeConfig.forbiddenId}, bossDodgeMacro, "DGE")
 
 UI.Separator()
 
@@ -382,13 +387,13 @@ local buffMacro = macro(1000, "Buff System", function()
         if storage.buff1 and storage.buff1:len() > 0 then say(storage.buff1) end
     end
 end)
-buffIcon = registerBotIcon("BuffSystem", {item=3031, text="BUF"}, buffMacro, "BUF")
+buffIcon = registerBotIcon("BuffSystem", {item=3031}, buffMacro, "BUF")
 UI.Label("Buff:")
 addTextEdit("buff1", storage.buff1 or "utito tempo san", function(widget, text) storage.buff1 = text end)
 
 UI.Separator()
 local taskRenewMacro = macro(2 * 60 * 1000, "Renovar Task (2min)", function() say("!taskrenew") end)
-taskRenewIcon = registerBotIcon("TaskRenew", {item=3031, text="TSK"}, taskRenewMacro, "TSK")
+taskRenewIcon = registerBotIcon("TaskRenew", {item=3031}, taskRenewMacro, "TSK")
 
 -- =====================================
 -- AUTO BLESS (SEM SPAM)
@@ -423,7 +428,7 @@ local autoBlessMacro = macro(500, "Auto Bless (Smart)", function()
         end
     end
 end)
-autoBlessIcon = registerBotIcon("AutoBless", {item=tonumber(storage.blessId) or 54981, text="BLS"}, autoBlessMacro, "BLS")
+autoBlessIcon = registerBotIcon("AutoBless", {item=tonumber(storage.blessId) or 54981}, autoBlessMacro, "BLS")
 UI.Label("ID do Bless:")
 UI.TextEdit(storage.blessId, function(widget, text) storage.blessId = text end)
 
@@ -525,6 +530,6 @@ followMacro = macro(50, "Turbo Follow", function()
         end
     end
 end)
-turboFollowIcon = registerBotIcon("TurboFollow", {item=3031, text="FLW"}, followMacro, "FLW")
+turboFollowIcon = registerBotIcon("TurboFollow", {item=3031}, followMacro, "FLW")
 
 UI.Separator()
