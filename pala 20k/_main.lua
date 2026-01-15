@@ -48,8 +48,9 @@ UI.Separator()
 -- =====================================
 -- 3. BOSS TIMER
 -- =====================================
-if storage.bossAlarmLeadMinutes == nil then storage.bossAlarmLeadMinutes = 5 end
-local configName = modules.game_bot.contentsPanel.config:getCurrentOption().text;
+local defaultBossAlarmLeadMinutes = 5
+if storage.bossAlarmLeadMinutes == nil then storage.bossAlarmLeadMinutes = defaultBossAlarmLeadMinutes end
+local configName = modules.game_bot.contentsPanel.config:getCurrentOption().text
 local bossConfig = {
     soundPath = "/bot/" .. configName .. "/Alarme/AlarmClock.wav",
     raidHours = {"01:30","03:30","05:30","07:30","09:30","11:30","13:30","15:30","17:30","19:30","21:30","23:30"}
@@ -79,9 +80,10 @@ local bossMacro = macro(1000, "Boss Timer", function()
     local hrs = math.floor(remaining / 3600)
     local mins = math.floor((remaining % 3600) / 60)
     local secs = remaining % 60
-    local leadSeconds = math.max(0, tonumber(storage.bossAlarmLeadMinutes) or 5) * 60
+    local leadSeconds = math.max(0, tonumber(storage.bossAlarmLeadMinutes) or defaultBossAlarmLeadMinutes) * 60
     if bossIcon then
-        bossIcon:setText("Boss Timer\n" .. nextTime .. "\n" .. string.format("%02d:%02d:%02d", hrs, mins, secs))
+        local timerText = string.format("Boss Timer\n%s\n%02d:%02d:%02d", nextTime, hrs, mins, secs)
+        bossIcon:setText(timerText)
         bossIcon:setColor(remaining <= leadSeconds and "red" or "yellow")
     end
     if remaining <= leadSeconds and lastAlarmTime ~= nextTime then
@@ -397,7 +399,7 @@ local function checkSurroundings(pPos)
         end
     end
 end
-local followMacro
+local followMacro = nil
 onTextMessage(function(mode, text)
     if not followMacro or not followMacro.isOn() then return end
     if string.find(text, "You see") then
