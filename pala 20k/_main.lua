@@ -21,11 +21,7 @@ local iconTheme = {
     spacingY = 50,
     size = {height = 42, width = 42},
     color = "#00FF9C",
-    altColor = "#7CFFD1",
-    glitchCharChance = GLITCH_CHAR_CHANCE, -- 1 em N para trocar caracteres
-    glitchTextChance = GLITCH_TEXT_CHANCE, -- 1 em N para aplicar glitch no texto
-    glitchColorChance = GLITCH_COLOR_CHANCE, -- 1 em N para variar a cor
-    glitchInterval = GLITCH_INTERVAL
+    altColor = "#7CFFD1"
 }
 iconTheme.index = 0
 local glitchableIcons = {}
@@ -36,7 +32,7 @@ local function glitchLabel(text)
     local chars = {}
     for i = 1, #text do
         local c = text:sub(i, i)
-        if math.random(1, iconTheme.glitchCharChance) == 1 then
+        if math.random(1, GLITCH_CHAR_CHANCE) == 1 then
             chars[i] = glitchChars[math.random(#glitchChars)]
         else
             chars[i] = c
@@ -79,7 +75,6 @@ local function registerBotIcon(name, iconData, macroRef, label, options)
     end
     icon:setX(x)
     icon:setY(y)
-    if label and label ~= "" then icon:setText(label) end
     if not (options and options.noColor) then icon:setColor(iconTheme.color) end
     if label and label ~= "" and not (options and options.noGlitch) then
         icon.glitchLabel = label
@@ -89,7 +84,7 @@ local function registerBotIcon(name, iconData, macroRef, label, options)
     return icon
 end
 
-local iconGlitchMacro = macro(iconTheme.glitchInterval, function()
+local iconGlitchMacro = macro(GLITCH_INTERVAL, function()
     if next(glitchableIcons) == nil then return end
     local cleanupKeys = {}
     for key, icon in pairs(glitchableIcons) do
@@ -98,13 +93,13 @@ local iconGlitchMacro = macro(iconTheme.glitchInterval, function()
         else
             local label = icon.glitchLabel or ""
             if label ~= "" then
-                if math.random(1, iconTheme.glitchTextChance) == 1 then
+                if math.random(1, GLITCH_TEXT_CHANCE) == 1 then
                     icon:setText(glitchLabel(label))
                 else
                     icon:setText(label)
                 end
             end
-            if math.random(1, iconTheme.glitchColorChance) == 1 then
+            if math.random(1, GLITCH_COLOR_CHANCE) == 1 then
                 icon:setColor(iconTheme.altColor)
             else
                 icon:setColor(iconTheme.color)
