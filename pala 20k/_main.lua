@@ -54,9 +54,15 @@ local function registerBotIcon(name, iconData, macroRef, label, options)
         iconTheme.index = iconTheme.index + 1
         gridIndex = iconTheme.index
     end
-    if iconData and iconData.moveable == nil then iconData.moveable = true end
-    if iconData and label ~= nil and iconData.text == nil then iconData.text = label end
-    local icon = addIcon(name, iconData, macroRef)
+    local iconParams = {}
+    if iconData then
+        for key, value in pairs(iconData) do
+            iconParams[key] = value
+        end
+    end
+    if iconParams.moveable == nil then iconParams.moveable = true end
+    if label ~= nil and iconParams.text == nil then iconParams.text = label end
+    local icon = addIcon(name, iconParams, macroRef)
     local size = options and options.size or iconTheme.size
     if size then icon:setSize(size) end
     local x, y = iconTheme.startX, iconTheme.startY
