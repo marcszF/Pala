@@ -18,7 +18,7 @@ local iconTheme = {
     color = "#00FF9C",
     altColor = "#7CFFD1"
 }
-local iconIndex = 0
+iconTheme.index = 0
 local glitchableIcons = {}
 local glitchChars = {"#", "@", "%", "&", "$", "*", "!", "?", "X", "Z"}
 
@@ -45,12 +45,19 @@ end
 local function registerBotIcon(name, iconData, macroRef, label, options)
     if botIconRegistry[name] then botIconRegistry[name]:destroy() end
     local useGrid = not (options and options.skipGrid)
-    if useGrid then iconIndex = iconIndex + 1 end
+    local gridIndex = iconTheme.index
+    if useGrid then
+        iconTheme.index = iconTheme.index + 1
+        gridIndex = iconTheme.index
+    end
     if iconData and iconData.moveable == nil then iconData.moveable = true end
     local icon = addIcon(name, iconData, macroRef)
     local size = options and options.size or iconTheme.size
     if size then icon:setSize(size) end
-    local x, y = nextIconPosition(iconIndex)
+    local x, y = iconTheme.startX, iconTheme.startY
+    if useGrid then
+        x, y = nextIconPosition(gridIndex)
+    end
     if options and options.position then
         x, y = options.position.x, options.position.y
     end
