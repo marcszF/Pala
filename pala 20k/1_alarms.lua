@@ -136,20 +136,13 @@ if rootWidget then
         
         local specs
         local posX, posY
-        local function ensureSpecs()
-            if not specs then specs = getSpectators() end
-            return specs
-        end
-        local function ensurePos()
-            if not posX then posX, posY = posx(), posy() end
-            return posX, posY
-        end
         if storage[alarmsPanelName].playerDetected then
-            local x, y = ensurePos()
-            for _, spec in ipairs(ensureSpecs()) do
+            if not posX then posX, posY = posx(), posy() end
+            if not specs then specs = getSpectators() end
+            for _, spec in ipairs(specs) do
                 if spec:isPlayer() and spec:getName() ~= name() then
                     local specPos = spec:getPosition()
-                    if specPos and inRange(x, y, specPos, 8) then
+                    if specPos and inRange(posX, posY, specPos, 8) then
                         playSound(alarmSound("jogador"))
                         delay(1500)
                         if storage[alarmsPanelName].playerDetectedLogout then
@@ -162,11 +155,12 @@ if rootWidget then
         end
 
         if storage[alarmsPanelName].creatureDetected then
-            local x, y = ensurePos()
-            for _, spec in ipairs(ensureSpecs()) do
+            if not posX then posX, posY = posx(), posy() end
+            if not specs then specs = getSpectators() end
+            for _, spec in ipairs(specs) do
                 if not spec:isPlayer()then
                     local specPos = spec:getPosition()
-                    if specPos and inRange(x, y, specPos, 8) then
+                    if specPos and inRange(posX, posY, specPos, 8) then
                         playSound(alarmSound("monstro"))
                         delay(1500)
                         return
@@ -184,7 +178,8 @@ if rootWidget then
         end
 
         if storage[alarmsPanelName].playerpk then
-            for _, spec in ipairs(ensureSpecs()) do
+            if not specs then specs = getSpectators() end
+            for _, spec in ipairs(specs) do
                 if spec:isPlayer() and spec:getSkull() ~= skull() then
                     playSound(alarmSound("pk"))
                     delay(1500)

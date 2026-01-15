@@ -42,11 +42,16 @@ function killsToRs()
 end
 
 local Spells = modules.gamelib.SpellInfo['Default']
-local SpellIndex = {}
-for _, spell in pairs(Spells) do
-    if spell.words then
-        SpellIndex[spell.words] = spell
+local SpellIndex = rawget(_G, "PalaSpellIndexCache")
+local function ensureSpellIndex()
+    if SpellIndex then return end
+    SpellIndex = {}
+    for _, spell in pairs(Spells) do
+        if spell.words then
+            SpellIndex[spell.words] = spell
+        end
     end
+    _G.PalaSpellIndexCache = SpellIndex
 end
 local DEFAULT_RANGE = 10
 
@@ -82,6 +87,7 @@ end
 
 function getSpellData(spell)
     if not spell then return false end
+    ensureSpellIndex()
     return SpellIndex[spell] or false
 end
 
@@ -268,7 +274,11 @@ function getNpcs(range, multifloor)
     return npcs;
 end
 
-local EquipmentGetters = {getHead, getNeck, getBack, getBody, getRight, getLeft, getLeg, getFeet, getFinger, getAmmo}
+local EquipmentGetters = rawget(_G, "PalaEquipmentGetters")
+if not EquipmentGetters then
+    EquipmentGetters = {getHead, getNeck, getBack, getBody, getRight, getLeft, getLeg, getFeet, getFinger, getAmmo}
+    _G.PalaEquipmentGetters = EquipmentGetters
+end
 
 function itemAmount(id)
     local totalItemCount = 0
