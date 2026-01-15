@@ -9,7 +9,7 @@ local autoReconnectMacro = macro(3000, "Auto Reconnect", function()
         if msgBox then msgBox:destroy() end
     end
     if EnterGame and EnterGame.doLogin then EnterGame.doLogin()
-    else if EnterGame then EnterGame.show() end end
+    elseif EnterGame then EnterGame.show() end
 end)
 if autoReconnectIcon then autoReconnectIcon:destroy() end
 autoReconnectIcon = addIcon("AutoReconnect", {item=3058, text="Reconnect", moveable=true}, autoReconnectMacro)
@@ -399,19 +399,7 @@ local function checkSurroundings(pPos)
         end
     end
 end
-local followMacro = nil
-onTextMessage(function(mode, text)
-    if not followMacro or not followMacro.isOn() then return end
-    if string.find(text, "You see") then
-        local name = string.match(text, "You see ([^%.%(]+)")
-        if name then
-            name = string.gsub(name, "^%s*(.-)%s*$", "%1")
-            storage.TurboFollowName = name
-            if followEdit then followEdit:setText(name) end
-        end
-    end
-end)
-followMacro = macro(50, "Turbo Follow", function()
+local followMacro = macro(50, "Turbo Follow", function()
     local player = g_game.getLocalPlayer()
     if not player then return end
     local myPos = player:getPosition()
@@ -436,6 +424,17 @@ followMacro = macro(50, "Turbo Follow", function()
             else
                 checkSurroundings(lastPos)
             end
+        end
+    end
+end)
+onTextMessage(function(mode, text)
+    if not followMacro or not followMacro.isOn() then return end
+    if string.find(text, "You see") then
+        local name = string.match(text, "You see ([^%.%(]+)")
+        if name then
+            name = string.gsub(name, "^%s*(.-)%s*$", "%1")
+            storage.TurboFollowName = name
+            if followEdit then followEdit:setText(name) end
         end
     end
 end)
