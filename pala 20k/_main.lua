@@ -1,7 +1,117 @@
 -- =====================================
 -- 1. AUTO RECONNECT & UTILS
 -- =====================================
-macro(3000, "Auto Reconnect", function()
+if botIconRegistry then
+    for _, icon in pairs(botIconRegistry) do
+        if icon and icon.destroy then icon:destroy() end
+    end
+end
+botIconRegistry = {}
+
+local GLITCH_CHAR_CHANCE = 10
+local GLITCH_TEXT_CHANCE = 4
+local GLITCH_COLOR_CHANCE = 6
+local GLITCH_INTERVAL = 500
+
+local iconTheme = {
+    startX = 100,
+    startY = 50,
+    columns = 2,
+    spacingX = 54,
+    spacingY = 50,
+    size = {height = 42, width = 42},
+    color = "#00FF9C",
+    altColor = "#7CFFD1"
+}
+iconTheme.index = 0
+local glitchableIcons = {}
+local glitchChars = {"#", "@", "%", "&", "$", "*", "!", "?", "X", "Z"}
+
+local function glitchLabel(text)
+    if not text then return "" end
+    local chars = {}
+    for i = 1, #text do
+        local c = text:sub(i, i)
+        if math.random(1, GLITCH_CHAR_CHANCE) == 1 then
+            chars[i] = glitchChars[math.random(#glitchChars)]
+        else
+            chars[i] = c
+        end
+    end
+    return table.concat(chars)
+end
+
+local function nextIconPosition(index)
+    local col = (index - 1) % iconTheme.columns
+    local row = math.floor((index - 1) / iconTheme.columns)
+    return iconTheme.startX + (col * iconTheme.spacingX), iconTheme.startY + (row * iconTheme.spacingY)
+end
+
+local function registerBotIcon(name, iconData, macroRef, label, options)
+    if botIconRegistry[name] then botIconRegistry[name]:destroy() end
+    local useGrid = not (options and options.skipGrid)
+    local gridIndex
+    if useGrid then
+        iconTheme.index = iconTheme.index + 1
+        gridIndex = iconTheme.index
+    end
+    local iconParams = {}
+    if iconData then
+        for key, value in pairs(iconData) do
+            iconParams[key] = value
+        end
+    end
+    if iconParams.moveable == nil then iconParams.moveable = true end
+    if label ~= nil and iconParams.text == nil then iconParams.text = label end
+    local icon = addIcon(name, iconParams, macroRef)
+    local size = options and options.size or iconTheme.size
+    if size then icon:setSize(size) end
+    local x, y = iconTheme.startX, iconTheme.startY
+    if useGrid then
+        x, y = nextIconPosition(gridIndex)
+    end
+    if options and options.position then
+        x, y = options.position.x, options.position.y
+    end
+    icon:setX(x)
+    icon:setY(y)
+    if not (options and options.noColor) then icon:setColor(iconTheme.color) end
+    if label and label ~= "" and not (options and options.noGlitch) then
+        icon.glitchLabel = label
+        glitchableIcons[name] = icon
+    end
+    botIconRegistry[name] = icon
+    return icon
+end
+
+local iconGlitchMacro = macro(GLITCH_INTERVAL, function()
+    if next(glitchableIcons) == nil then return end
+    local cleanupKeys = {}
+    for key, icon in pairs(glitchableIcons) do
+        if not icon then
+            cleanupKeys[#cleanupKeys + 1] = key
+        else
+            local label = icon.glitchLabel or ""
+            if label ~= "" then
+                if math.random(1, GLITCH_TEXT_CHANCE) == 1 then
+                    icon:setText(glitchLabel(label))
+                else
+                    icon:setText(label)
+                end
+            end
+            if math.random(1, GLITCH_COLOR_CHANCE) == 1 then
+                icon:setColor(iconTheme.altColor)
+            else
+                icon:setColor(iconTheme.color)
+            end
+        end
+    end
+    for _, key in ipairs(cleanupKeys) do
+        glitchableIcons[key] = nil
+    end
+end)
+
+local autoReconnectMacro = macro(3000, "Auto Reconnect", function()
     if g_game.isOnline() then return end
     local root = g_ui.getRootWidget()
     if root then
@@ -9,8 +119,9 @@ macro(3000, "Auto Reconnect", function()
         if msgBox then msgBox:destroy() end
     end
     if EnterGame and EnterGame.doLogin then EnterGame.doLogin()
-    else if EnterGame then EnterGame.show() end end
+    elseif EnterGame then EnterGame.show() end
 end)
+autoReconnectIcon = registerBotIcon("AutoReconnect", {item=3031}, autoReconnectMacro, "RC")
 
 UI.Separator()
 
@@ -21,7 +132,7 @@ if type(storage.moneyItems) ~= "table" or not storage.moneyItems[1] then
   storage.moneyItems = { {id=3031}, {id=3035} }
 end
 
-macro(500, "Converter dinheiro", function()
+local moneyMacro = macro(500, "Converter dinheiro", function()
   if not storage.moneyItems then return end
   local containers = g_game.getContainers()
   for index, container in pairs(containers) do
@@ -37,6 +148,7 @@ macro(500, "Converter dinheiro", function()
     end
   end
 end)
+moneyIcon = registerBotIcon("MoneyConvert", {item=3035}, moneyMacro, "COIN")
 local moneyContainer = UI.Container(function(widget, items) storage.moneyItems = items end, true)
 moneyContainer:setHeight(35)
 moneyContainer:setItems(storage.moneyItems)
@@ -81,10 +193,13 @@ local bossMacro = macro(1000, "Boss Timer", function()
     end
 end)
 if bossIcon then bossIcon:destroy() end
-bossIcon = addIcon("BossTimerFix", {item=2036, text="", moveable=true}, bossMacro)
-bossIcon:setSize({height=85, width=50})
-bossIcon:setX(35)
-bossIcon:setY(50)
+bossIcon = registerBotIcon("BossTimerFix", {item=2036, moveable=true}, bossMacro, "", {
+    skipGrid = true,
+    position = {x = 35, y = 50},
+    size = {height = 85, width = 50},
+    noGlitch = true,
+    noColor = true
+})
 
 UI.Separator()
 
@@ -95,7 +210,7 @@ if storage.staminaPanel then storage.staminaPanel:destroy() storage.staminaPanel
 local staminaConfig = { potionId = 36725, staminaLimit = 39 * 60 }
 local staminaLabel = UI.Label("Stamina: Calculando...")
 staminaLabel:setColor("#FFA500") 
-macro(1000, "Auto Stamina Potion", function()
+local staminaMacro = macro(1000, "Auto Stamina Potion", function()
     if not g_game.isOnline() then return end
     local player = g_game.getLocalPlayer()
     if not player then return end
@@ -105,6 +220,7 @@ macro(1000, "Auto Stamina Potion", function()
         if use then use(staminaConfig.potionId) else g_game.useInventoryItem(staminaConfig.potionId) end
     end
 end)
+staminaIcon = registerBotIcon("StaminaPotion", {item=staminaConfig.potionId}, staminaMacro, "STM")
 
 UI.Separator()
 
@@ -112,6 +228,7 @@ UI.Separator()
 -- 5. MONSTRO HP % & FOLLOW
 -- =====================================
 local showhp = macro(20000, "Monstro Hp %", function() end)
+hpIcon = registerBotIcon("MonsterHp", {item=3031}, showhp, "HP")
 onCreatureHealthPercentChange(function(creature, healthPercent)
     if showhp:isOff() then return end
     if creature:isMonster() or (creature:isPlayer() and creature:getPosition()) then
@@ -121,9 +238,10 @@ end)
 
 UI.Separator()
 
-macro(250, "Atacar Seguindo", "Shift+R", function()
+local chaseMacro = macro(250, "Atacar Seguindo", "Shift+R", function()
    if g_game.isOnline() and g_game.isAttacking() then g_game.setChaseMode(1) end
 end)
+chaseIcon = registerBotIcon("ChaseAttack", {item=3031}, chaseMacro, "CHS")
 
 UI.Separator()
 
@@ -131,7 +249,7 @@ UI.Separator()
 -- 7. AUTO SELL+BANK
 -- =====================================
 local seqConfig = { sellId = 54995, bankId = 54991, delay = 5000 }
-macro(30000, "Auto Sell+Bank (Store)", function()
+local sellBankMacro = macro(30000, "Auto Sell+Bank (Store)", function()
     local function useItemById(id)
         if g_game.useInventoryItem then g_game.useInventoryItem(id)
         else local item = findItem(id) if item then g_game.use(item) end end
@@ -139,6 +257,7 @@ macro(30000, "Auto Sell+Bank (Store)", function()
     useItemById(seqConfig.sellId)
     schedule(seqConfig.delay, function() useItemById(seqConfig.bankId) end)
 end)
+sellBankIcon = registerBotIcon("SellBank", {item=seqConfig.sellId}, sellBankMacro, "SLB")
 
 UI.Separator()
 
@@ -177,22 +296,24 @@ local HouseMacro = macro(trainerConfig.delay, "House Trainer", function()
     if wandItem then g_game.useWith(wandItem, targetDummy) end
 end)
 if trainerIcon then trainerIcon:destroy() end
-trainerIcon = addIcon("TrainerFix", {item=55486, text="Trainer", moveable=true}, HouseMacro)
-trainerIcon:setX(35)
-trainerIcon:setY(130)
+trainerIcon = registerBotIcon("TrainerFix", {item=55486, moveable=true}, HouseMacro, "TRN", {
+    skipGrid = true,
+    position = {x = 35, y = 130}
+})
 
 UI.Separator()
 
 -- =====================================
 -- ATTACK SPELLS & ITENS
 -- =====================================
-macro(100, "Attack", function()
+local attackMacro = macro(100, "Attack", function()
     if g_game.isAttacking() then
       if storage.magia1 and storage.magia1 ~= "" then say(storage.magia1) end
       if storage.magia2 and storage.magia2 ~= "" then delay(100) say(storage.magia2) end
       if storage.magia3 and storage.magia3 ~= "" then delay(100) say(storage.magia3) end
     end
 end)
+attackIcon = registerBotIcon("AttackSpells", {item=3155}, attackMacro, "ATK")
 UI.TextEdit(storage.magia1 or "spell", function(widget, newText) storage.magia1 = newText end)
 UI.TextEdit(storage.magia2 or "spell2", function(widget, newText) storage.magia2 = newText end)
 UI.TextEdit(storage.magia3 or "spell3", function(widget, newText) storage.magia3 = newText end)
@@ -200,7 +321,7 @@ UI.TextEdit(storage.magia3 or "spell3", function(widget, newText) storage.magia3
 UI.Separator()
 
 if type(storage.attackItemObj) ~= "table" then storage.attackItemObj = {3155} end
-macro(200, "Auto attack item", function()
+local autoAttackItemMacro = macro(200, "Auto attack item", function()
     if not g_game.isAttacking() then return end
     local target = g_game.getAttackingCreature()
     if not target then return end
@@ -210,6 +331,7 @@ macro(200, "Auto attack item", function()
     if g_game.useInventoryItemWith then g_game.useInventoryItemWith(itemId, target)
     else local item = findItem(itemId) if item then g_game.useWith(item, target) end end
 end)
+autoAttackItemIcon = registerBotIcon("AttackItem", {item=3155}, autoAttackItemMacro, "ITM")
 UI.Label("Arraste o item de ataque aqui:")
 local attackItemContainer = UI.Container(function(widget, items) storage.attackItemObj = items end, true)
 attackItemContainer:setHeight(35)
@@ -246,7 +368,7 @@ local function getSafeTile(pos)
     end
     return bestPos
 end
-macro(100, "Boss Dodge Logic", function()
+local bossDodgeMacro = macro(100, "Boss Dodge Logic", function()
     local player = g_game.getLocalPlayer()
     if not player then return end
     local playerPos = player:getPosition()
@@ -258,6 +380,7 @@ macro(100, "Boss Dodge Logic", function()
         end
     end
 end)
+bossDodgeIcon = registerBotIcon("BossDodge", {item=dodgeConfig.forbiddenId}, bossDodgeMacro, "DGE")
 
 UI.Separator()
 
@@ -271,11 +394,13 @@ local buffMacro = macro(1000, "Buff System", function()
         if storage.buff1 and storage.buff1:len() > 0 then say(storage.buff1) end
     end
 end)
+buffIcon = registerBotIcon("BuffSystem", {item=3031}, buffMacro, "BUF")
 UI.Label("Buff:")
 addTextEdit("buff1", storage.buff1 or "utito tempo san", function(widget, text) storage.buff1 = text end)
 
 UI.Separator()
-macro(2 * 60 * 1000, "Renovar Task (2min)", function() say("!taskrenew") end)
+local taskRenewMacro = macro(2 * 60 * 1000, "Renovar Task (2min)", function() say("!taskrenew") end)
+taskRenewIcon = registerBotIcon("TaskRenew", {item=3031}, taskRenewMacro, "TSK")
 
 -- =====================================
 -- AUTO BLESS (SEM SPAM)
@@ -285,7 +410,7 @@ if not storage.blessId then storage.blessId = "54981" end
 -- Variavel de controle: assume true para usar ao carregar o script
 local pendingBless = true 
 
-macro(500, "Auto Bless (Smart)", function()
+local autoBlessMacro = macro(500, "Auto Bless (Smart)", function()
     -- Checa se o player esta online e vivo
     local player = g_game.getLocalPlayer()
     local isAlive = g_game.isOnline() and player and player:getHealth() > 0
@@ -310,6 +435,7 @@ macro(500, "Auto Bless (Smart)", function()
         end
     end
 end)
+autoBlessIcon = registerBotIcon("AutoBless", {item=tonumber(storage.blessId) or 54981}, autoBlessMacro, "BLS")
 UI.Label("ID do Bless:")
 UI.TextEdit(storage.blessId, function(widget, text) storage.blessId = text end)
 
@@ -411,5 +537,6 @@ followMacro = macro(50, "Turbo Follow", function()
         end
     end
 end)
+turboFollowIcon = registerBotIcon("TurboFollow", {item=3031}, followMacro, "FLW")
 
 UI.Separator()
