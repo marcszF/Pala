@@ -8,6 +8,11 @@ if botIconRegistry then
 end
 botIconRegistry = {}
 
+local GLITCH_CHAR_CHANCE = 10
+local GLITCH_TEXT_CHANCE = 4
+local GLITCH_COLOR_CHANCE = 6
+local GLITCH_INTERVAL = 500
+
 local iconTheme = {
     startX = 100,
     startY = 50,
@@ -17,10 +22,10 @@ local iconTheme = {
     size = {height = 42, width = 42},
     color = "#00FF9C",
     altColor = "#7CFFD1",
-    glitchCharChance = 10, -- 1 em N para trocar caracteres
-    glitchTextChance = 4, -- 1 em N para aplicar glitch no texto
-    glitchColorChance = 6, -- 1 em N para variar a cor
-    glitchInterval = 500
+    glitchCharChance = GLITCH_CHAR_CHANCE, -- 1 em N para trocar caracteres
+    glitchTextChance = GLITCH_TEXT_CHANCE, -- 1 em N para aplicar glitch no texto
+    glitchColorChance = GLITCH_COLOR_CHANCE, -- 1 em N para variar a cor
+    glitchInterval = GLITCH_INTERVAL
 }
 iconTheme.index = 0
 local glitchableIcons = {}
@@ -85,6 +90,7 @@ local function registerBotIcon(name, iconData, macroRef, label, options)
 end
 
 local iconGlitchMacro = macro(iconTheme.glitchInterval, function()
+    if next(glitchableIcons) == nil then return end
     local cleanupKeys = {}
     for key, icon in pairs(glitchableIcons) do
         if not icon then
