@@ -39,7 +39,7 @@ if name == player:getName() then return end
     if string.find(text, "pt")  and pt == true then
         local friend = getPlayerByName(name)
         if friend then
-          g_game.partyInvite(friend:getId())
+            g_game.partyInvite(friend:getId())
         end
     end
 end)

@@ -128,14 +128,13 @@ end
 function isEnemy(name)
     if not name then return false end
     local p = getCreatureByName(name, true)
-    if not p then return false end
-    if p:isLocalPlayer() then return false end
+    if not p or p:isLocalPlayer() then return false end
 
-    if p:isPlayer() and table.find(storage.playerList.enemyList, name) or (storage.playerList.marks and not isFriend(name)) then
+    local isMarkedEnemy = storage.playerList.marks and not isFriend(name)
+    if (p:isPlayer() and table.find(storage.playerList.enemyList, name)) or isMarkedEnemy then
         return true
-    else
-        return false
     end
+    return false
 end
   
 function isAttSpell(expr)
