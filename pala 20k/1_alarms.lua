@@ -123,7 +123,10 @@ if rootWidget then
     end
 
     onTextMessage(function(mode, text)
-        if storage[alarmsPanelName].enabled and storage[alarmsPanelName].playerAttack and mode == 16 and text:find("hitpoints due to an attack", 1, true) and not text:find("hitpoints due to an attack by a ", 1, true) then
+        local isEnabled = storage[alarmsPanelName].enabled and storage[alarmsPanelName].playerAttack
+        local isHitMessage = text:find("hitpoints due to an attack", 1, true)
+        local isPlayerHit = not text:find("hitpoints due to an attack by a ", 1, true)
+        if isEnabled and mode == 16 and isHitMessage and isPlayerHit then
             playSound(alarmSound("Player_Attack"))
         end
     end)

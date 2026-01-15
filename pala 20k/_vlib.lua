@@ -46,6 +46,7 @@ for _, spell in pairs(Spells) do
         SpellIndex[spell.words] = spell
     end
 end
+local DEFAULT_RANGE = 10
 
 function resolveItemId(entry)
     if type(entry) == "table" then
@@ -203,7 +204,7 @@ function distanceFromPlayer(coords)
 end
 
 function getMonsters(range, multifloor)
-    range = range or 10
+    range = range or DEFAULT_RANGE
     local mobs = 0;
     for _, spec in pairs(getSpectators(multifloor)) do
       mobs = spec:getType() ~= 3 and spec:isMonster() and distanceFromPlayer(spec:getPosition()) <= range and mobs + 1 or mobs;
@@ -212,7 +213,7 @@ function getMonsters(range, multifloor)
 end
 
 function getPlayers(range, multifloor)
-    range = range or 10
+    range = range or DEFAULT_RANGE
     local specs = 0;
     for _, spec in pairs(getSpectators(multifloor)) do
         specs = not spec:isLocalPlayer() and spec:isPlayer() and distanceFromPlayer(spec:getPosition()) <= range and not ((spec:getShield() >= 3 and spec:getShield() <= 10) or spec:getEmblem() == 1) and specs + 1 or specs;
@@ -228,14 +229,15 @@ function isSafe(range, multifloor, padding)
         padding = false
     end
 
+    local playerZ = posz()
     for _, spec in pairs(getSpectators(multifloor)) do
         if spec:isPlayer() and not spec:isLocalPlayer() and not isFriend(spec:getName()) then
             local specPos = spec:getPosition()
             local dist = distanceFromPlayer(specPos)
-            if specPos.z == posz() and dist <= range then
+            if specPos.z == playerZ and dist <= range then
                 onSame = onSame + 1
             end
-            if multifloor and padding and specPos.z ~= posz() and dist <= (range + padding) then
+            if multifloor and padding and specPos.z ~= playerZ and dist <= (range + padding) then
                 onAnother = onAnother + 1
             end
         end
@@ -249,7 +251,7 @@ function isSafe(range, multifloor, padding)
 end
 
 function getAllPlayers(range, multifloor)
-    range = range or 10
+    range = range or DEFAULT_RANGE
     local specs = 0;
     for _, spec in pairs(g_map.getSpectators(multifloor)) do
         specs = not spec:isLocalPlayer() and spec:isPlayer() and distanceFromPlayer(spec:getPosition()) <= range and specs + 1 or specs;
@@ -258,7 +260,7 @@ function getAllPlayers(range, multifloor)
 end
 
 function getNpcs(range, multifloor)
-    range = range or 10
+    range = range or DEFAULT_RANGE
     local npcs = 0;
     for _, spec in pairs(g_map.getSpectators(multifloor)) do
         npcs = spec:isNpc() and distanceFromPlayer(spec:getPosition()) <= range and npcs + 1 or npcs;
