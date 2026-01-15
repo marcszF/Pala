@@ -14,7 +14,7 @@ local function ensureMapPanel()
 end
 
 onPlayerPositionChange(function(newPos, oldPos)
-    lockedLevel = newPos.z
+    lockedLevel = pos().z
     local panel = ensureMapPanel()
     if panel then panel:unlockVisibleFloor() end
 end)
