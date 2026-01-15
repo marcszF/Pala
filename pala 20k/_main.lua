@@ -1,7 +1,7 @@
 -- =====================================
 -- 1. AUTO RECONNECT & UTILS
 -- =====================================
-macro(3000, "Auto Reconnect", function()
+local autoReconnectMacro = macro(3000, "Auto Reconnect", function()
     if g_game.isOnline() then return end
     local root = g_ui.getRootWidget()
     if root then
@@ -11,6 +11,8 @@ macro(3000, "Auto Reconnect", function()
     if EnterGame and EnterGame.doLogin then EnterGame.doLogin()
     else if EnterGame then EnterGame.show() end end
 end)
+if autoReconnectIcon then autoReconnectIcon:destroy() end
+autoReconnectIcon = addIcon("AutoReconnect", {item=3058, text="Reconnect", moveable=true}, autoReconnectMacro)
 
 UI.Separator()
 
@@ -46,11 +48,17 @@ UI.Separator()
 -- =====================================
 -- 3. BOSS TIMER
 -- =====================================
+if storage.bossAlarmLeadMinutes == nil then storage.bossAlarmLeadMinutes = 5 end
+local configName = modules.game_bot.contentsPanel.config:getCurrentOption().text;
 local bossConfig = {
-    alarmSeconds = 60, 
-    soundPath = "/bot/pala 60k/Alarme/AlarmClock.wav",
+    soundPath = "/bot/" .. configName .. "/Alarme/AlarmClock.wav",
     raidHours = {"01:30","03:30","05:30","07:30","09:30","11:30","13:30","15:30","17:30","19:30","21:30","23:30"}
 }
+UI.Label("Boss alarm (min):")
+UI.TextEdit(tostring(storage.bossAlarmLeadMinutes), function(widget, text)
+    local value = tonumber(text)
+    if value then storage.bossAlarmLeadMinutes = value end
+end)
 local lastAlarmTime = ""
 local function timeToSeconds(hhmm)
     local h, m = string.match(hhmm, "(%d+):(%d+)")
@@ -71,18 +79,19 @@ local bossMacro = macro(1000, "Boss Timer", function()
     local hrs = math.floor(remaining / 3600)
     local mins = math.floor((remaining % 3600) / 60)
     local secs = remaining % 60
+    local leadSeconds = math.max(0, tonumber(storage.bossAlarmLeadMinutes) or 5) * 60
     if bossIcon then
-        bossIcon:setText("\n\n" .. nextTime .. "\n" .. string.format("%02d:%02d:%02d", hrs, mins, secs))
-        bossIcon:setColor(remaining < 120 and "red" or "white")
+        bossIcon:setText("Boss Timer\n" .. nextTime .. "\n" .. string.format("%02d:%02d:%02d", hrs, mins, secs))
+        bossIcon:setColor(remaining <= leadSeconds and "red" or "yellow")
     end
-    if remaining <= bossConfig.alarmSeconds and lastAlarmTime ~= nextTime then
+    if remaining <= leadSeconds and lastAlarmTime ~= nextTime then
         playSound(bossConfig.soundPath)
         lastAlarmTime = nextTime
     end
 end)
 if bossIcon then bossIcon:destroy() end
 bossIcon = addIcon("BossTimerFix", {item=2036, text="", moveable=true}, bossMacro)
-bossIcon:setSize({height=85, width=50})
+bossIcon:setSize({height=95, width=65})
 bossIcon:setX(35)
 bossIcon:setY(50)
 
@@ -131,7 +140,7 @@ UI.Separator()
 -- 7. AUTO SELL+BANK
 -- =====================================
 local seqConfig = { sellId = 54995, bankId = 54991, delay = 5000 }
-macro(30000, "Auto Sell+Bank (Store)", function()
+local autoSellBankMacro = macro(30000, "Auto Sell+Bank (Store)", function()
     local function useItemById(id)
         if g_game.useInventoryItem then g_game.useInventoryItem(id)
         else local item = findItem(id) if item then g_game.use(item) end end
@@ -139,6 +148,8 @@ macro(30000, "Auto Sell+Bank (Store)", function()
     useItemById(seqConfig.sellId)
     schedule(seqConfig.delay, function() useItemById(seqConfig.bankId) end)
 end)
+if autoSellBankIcon then autoSellBankIcon:destroy() end
+autoSellBankIcon = addIcon("AutoSellBank", {item=seqConfig.sellId, text="Sell+Bank", moveable=true}, autoSellBankMacro)
 
 UI.Separator()
 
@@ -186,7 +197,7 @@ UI.Separator()
 -- =====================================
 -- ATTACK SPELLS & ITENS
 -- =====================================
-macro(100, "Attack", function()
+local attackMacro = macro(100, "Attack", function()
     if g_game.isAttacking() then
       if storage.magia1 and storage.magia1 ~= "" then say(storage.magia1) end
       if storage.magia2 and storage.magia2 ~= "" then delay(100) say(storage.magia2) end
@@ -196,11 +207,13 @@ end)
 UI.TextEdit(storage.magia1 or "spell", function(widget, newText) storage.magia1 = newText end)
 UI.TextEdit(storage.magia2 or "spell2", function(widget, newText) storage.magia2 = newText end)
 UI.TextEdit(storage.magia3 or "spell3", function(widget, newText) storage.magia3 = newText end)
+if attackIcon then attackIcon:destroy() end
+attackIcon = addIcon("AttackMacro", {item=55484, text="Attack", moveable=true}, attackMacro)
 
 UI.Separator()
 
 if type(storage.attackItemObj) ~= "table" then storage.attackItemObj = {3155} end
-macro(200, "Auto attack item", function()
+local autoAttackItemMacro = macro(200, "Auto attack item", function()
     if not g_game.isAttacking() then return end
     local target = g_game.getAttackingCreature()
     if not target then return end
@@ -214,6 +227,11 @@ UI.Label("Arraste o item de ataque aqui:")
 local attackItemContainer = UI.Container(function(widget, items) storage.attackItemObj = items end, true)
 attackItemContainer:setHeight(35)
 attackItemContainer:setItems(storage.attackItemObj)
+local attackItemIconId = 3155
+local attackItemEntry = storage.attackItemObj[1]
+if attackItemEntry then attackItemIconId = type(attackItemEntry) == "table" and attackItemEntry.id or attackItemEntry end
+if autoAttackItemIcon then autoAttackItemIcon:destroy() end
+autoAttackItemIcon = addIcon("AutoAttackItem", {item=attackItemIconId, text="Atk Item", moveable=true}, autoAttackItemMacro)
 
 UI.Separator()
 
@@ -246,7 +264,7 @@ local function getSafeTile(pos)
     end
     return bestPos
 end
-macro(100, "Boss Dodge Logic", function()
+local bossDodgeMacro = macro(100, "Boss Dodge", function()
     local player = g_game.getLocalPlayer()
     if not player then return end
     local playerPos = player:getPosition()
@@ -258,6 +276,8 @@ macro(100, "Boss Dodge Logic", function()
         end
     end
 end)
+if bossDodgeIcon then bossDodgeIcon:destroy() end
+bossDodgeIcon = addIcon("BossDodge", {item=dodgeConfig.forbiddenId, text="Dodge", moveable=true}, bossDodgeMacro)
 
 UI.Separator()
 
@@ -275,7 +295,9 @@ UI.Label("Buff:")
 addTextEdit("buff1", storage.buff1 or "utito tempo san", function(widget, text) storage.buff1 = text end)
 
 UI.Separator()
-macro(2 * 60 * 1000, "Renovar Task (2min)", function() say("!taskrenew") end)
+local renewTaskMacro = macro(2 * 60 * 1000, "Renovar Task (2min)", function() say("!taskrenew") end)
+if renewTaskIcon then renewTaskIcon:destroy() end
+renewTaskIcon = addIcon("RenewTask", {item=1950, text="Task", moveable=true}, renewTaskMacro)
 
 -- =====================================
 -- AUTO BLESS (SEM SPAM)
@@ -285,7 +307,7 @@ if not storage.blessId then storage.blessId = "54981" end
 -- Variavel de controle: assume true para usar ao carregar o script
 local pendingBless = true 
 
-macro(500, "Auto Bless (Smart)", function()
+local autoBlessMacro = macro(500, "Auto Bless (Smart)", function()
     -- Checa se o player esta online e vivo
     local player = g_game.getLocalPlayer()
     local isAlive = g_game.isOnline() and player and player:getHealth() > 0
@@ -312,6 +334,9 @@ macro(500, "Auto Bless (Smart)", function()
 end)
 UI.Label("ID do Bless:")
 UI.TextEdit(storage.blessId, function(widget, text) storage.blessId = text end)
+local blessIconId = tonumber(storage.blessId) or 54981
+if autoBlessIcon then autoBlessIcon:destroy() end
+autoBlessIcon = addIcon("AutoBless", {item=blessIconId, text="Bless", moveable=true}, autoBlessMacro)
 
 UI.Separator()
 
@@ -372,6 +397,7 @@ local function checkSurroundings(pPos)
         end
     end
 end
+local followMacro
 onTextMessage(function(mode, text)
     if not followMacro or not followMacro.isOn() then return end
     if string.find(text, "You see") then
@@ -411,5 +437,7 @@ followMacro = macro(50, "Turbo Follow", function()
         end
     end
 end)
+if turboFollowIcon then turboFollowIcon:destroy() end
+turboFollowIcon = addIcon("TurboFollow", {item=3088, text="Follow", moveable=true}, followMacro)
 
 UI.Separator()
