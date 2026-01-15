@@ -88,7 +88,7 @@ local iconGlitchMacro = macro(iconTheme.glitchInterval, function()
     local cleanupKeys = {}
     for key, icon in pairs(glitchableIcons) do
         if not icon then
-            table.insert(cleanupKeys, key)
+            cleanupKeys[#cleanupKeys + 1] = key
         else
             local label = icon.glitchLabel or ""
             if label ~= "" then
@@ -118,7 +118,7 @@ local autoReconnectMacro = macro(3000, "Auto Reconnect", function()
         if msgBox then msgBox:destroy() end
     end
     if EnterGame and EnterGame.doLogin then EnterGame.doLogin()
-    else if EnterGame then EnterGame.show() end end
+    elseif EnterGame then EnterGame.show() end
 end)
 autoReconnectIcon = registerBotIcon("AutoReconnect", {item=3031}, autoReconnectMacro, "RC")
 
