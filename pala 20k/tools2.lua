@@ -98,7 +98,6 @@ end)
 macro(1, function() if g_game.isAttacking() and g_game.getAttackingCreature():isPlayer() then sense = g_game.getAttackingCreature():getName() end end)
 
 UI.Separator()
- 
 addSeparator()
 local dropItems = { 3031, 3035 }
 local maxStackedItems = 10

@@ -237,12 +237,15 @@ function isSafe(range, multifloor, padding)
     for _, spec in pairs(getSpectators(multifloor)) do
         if spec:isPlayer() and not spec:isLocalPlayer() and not isFriend(spec:getName()) then
             local specPos = spec:getPosition()
+            local dist
             if specPos.z == playerZ then
-                if distanceFromPlayer(specPos) <= range then
+                dist = distanceFromPlayer(specPos)
+                if dist <= range then
                     onSame = onSame + 1
                 end
             elseif multifloor and padding then
-                if distanceFromPlayer(specPos) <= (range + padding) then
+                dist = distanceFromPlayer(specPos)
+                if dist <= (range + padding) then
                     onAnother = onAnother + 1
                 end
             end
